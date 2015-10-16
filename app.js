@@ -16,8 +16,11 @@ app.get('/', function (req, res) {
     request.get(apiCall).pipe(res);
 });
 
-var server = app.listen(3000, function () {
-  var port = server.address().port;
+
+var port = process.env.PORT || 3000;
+
+var server = app.listen(port, function () {
+
 
   console.log('Example app listening on port  ',port);
 });
