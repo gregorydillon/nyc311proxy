@@ -6,14 +6,18 @@ var request = require('request');
 
 app.get('/', function (req, res) {
 
-  //get the date from 30 days ago
-  var thirtydaysago = moment().subtract(30, 'days').format('YYYY-MM-DD')
+  var sourceLimit = 1000000;
+  //get the date from 90 days ago
+  var ninety_days_ago = moment().subtract(90, 'days').format('YYYY-MM-DD')
+
+  var sourceTemplate = 'https://data.cityofnewyork.us/resource/fhrw-4uyv.csv?$LIMIT={{sourceLimit}}&$ORDER=created_date%20DESC&$WHERE=created_date>=%272015-12-12%27';
+
 
     //build a SODA API call... eww
-    var apiCall = Mustache.render("https://data.cityofnewyork.us/resource/fhrw-4uyv.geojson?$where=created_date>='{{date}}'&$limit=500000",{date:thirtydaysago});
+    var sourceURL = Mustache.render( sourceTemplate, { sourceLimit: sourceLimit });
 
     //GET the API call and pipe it to the response
-    request.get(apiCall).pipe(res);
+    request.get(sourceURL).pipe(res);
 });
 
 
