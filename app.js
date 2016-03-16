@@ -1,71 +1,69 @@
-var express = require('express');
+var express = require('express')
+  , moment = require('moment')
+  , Mustache = require('mustache')
+  , request = require('request')
+  , split2 = require('split2')
+  , through2 = require('through2')
+  , moment = require('moment')
+  ;
+
 var app = express();
-var moment = require('moment');
-var Mustache = require('mustache');
-var request = require('request');
-var split2 = require('split2');
-var stream = require('stream');
-var through2 = require('through2');
-var moment = require('moment');
-
-
-var modifyDates = new stream.Transform();
-
-var transform = through2(function(chunk, encoding, cb) {
-  chunk = chunk.toString();
-
-  chunk = chunk.replace(/(\d{4}\-\d\d\-\d\d[tT][\d:\.]*)/g, function(match) {
-    console.log(match);
-    var newTime = shiftTime(match);
-    console.log(newTime);
-    return shiftTime(match);
-  });
-
-  cb(null, chunk);
-})
-
-.on('error', function(err) {
-  console.log(err, err.toString());
-});
-
 
 
 app.get('/:anything', function (req, res) {
 
+  //SODA API defaults to 1000, set the limit higher than what we will need for 90 days
   var sourceLimit = 1000000;
-  //get the date from 90 days ago
+
+  //get a date string for 90 days ago
   var ninety_days_ago = moment().subtract(90, 'days').format('YYYY-MM-DD')
 
+  //SODA API Template
   var sourceTemplate = 'https://data.cityofnewyork.us/resource/fhrw-4uyv.csv?$LIMIT={{sourceLimit}}&$ORDER=created_date%20DESC&$WHERE=created_date>=%27{{ninety_days_ago}}%27';
 
+  //build a SODA API call
+  var sourceURL = Mustache.render( sourceTemplate, { 
+    sourceLimit: sourceLimit,
+    ninety_days_ago: ninety_days_ago 
+  });
 
-    //build a SODA API call... eww
-    var sourceURL = Mustache.render( sourceTemplate, { 
-      sourceLimit: sourceLimit,
-      ninety_days_ago: ninety_days_ago 
-    });
+  //set Content-disposition header so that browsers will treat it as a download
+  res.setHeader('Content-disposition', 'attachment; filename=data.csv');
 
-    console.log(sourceURL);
-
-    //GET the API call and pipe it to the response
-    request.get(sourceURL)
-      .on('end', function() {
-        res.end();
-      })
-      .pipe(split2(), { end: false })
-      .pipe(transform)
-      .pipe(res);
+  //GET the API call and pipe it to the response
+  request.get(sourceURL)
+    .on('end', function() {
+      res.end();
+    })
+    .pipe(split2(), { end: false })
+    .pipe(transform)
+    .pipe(res);
 });
 
 
 var port = process.env.PORT || 3000;
 
 var server = app.listen(port, function () {
-
-
   console.log('Example app listening on port  ',port);
 });
 
+//transform function, finds all timestamps and converts them to GMT
+var transform = through2(function(chunk, encoding, cb) {
+  chunk = chunk.toString();
+
+  chunk = chunk.replace(/(\d{4}\-\d\d\-\d\d[tT][\d:\.]*)/g, function(match) {
+    var newTime = shiftTime(match);
+    return shiftTime(match);
+  });
+
+  //re-add the newline character
+  chunk += '\n';
+
+  cb(null, chunk);
+})
+  .on('error', function(err) {
+  console.log(err, err.toString());
+});
 
 //shift time to GMT
 function shiftTime(timestamp) {
