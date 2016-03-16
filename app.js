@@ -3,6 +3,32 @@ var app = express();
 var moment = require('moment');
 var Mustache = require('mustache');
 var request = require('request');
+var split2 = require('split2');
+var stream = require('stream');
+var through2 = require('through2');
+var moment = require('moment');
+
+
+var modifyDates = new stream.Transform();
+
+var transform = through2(function(chunk, encoding, cb) {
+  chunk = chunk.toString();
+
+  chunk = chunk.replace(/(\d{4}\-\d\d\-\d\d[tT][\d:\.]*)/g, function(match) {
+    console.log(match);
+    var newTime = shiftTime(match);
+    console.log(newTime);
+    return shiftTime(match);
+  });
+
+  cb(null, chunk);
+})
+
+.on('error', function(err) {
+  console.log(err, err.toString());
+});
+
+
 
 app.get('/:anything', function (req, res) {
 
@@ -22,7 +48,13 @@ app.get('/:anything', function (req, res) {
     console.log(sourceURL);
 
     //GET the API call and pipe it to the response
-    request.get(sourceURL).pipe(res);
+    request.get(sourceURL)
+      .on('end', function() {
+        res.end();
+      })
+      .pipe(split2(), { end: false })
+      .pipe(transform)
+      .pipe(res);
 });
 
 
@@ -33,3 +65,13 @@ var server = app.listen(port, function () {
 
   console.log('Example app listening on port  ',port);
 });
+
+
+//shift time to GMT
+function shiftTime(timestamp) {
+  if(timestamp.length > 0 ) {
+    timestamp = moment(timestamp).add(5,'hours').format('MM/DD/YYYY hh:mm:ss A');
+  }
+
+  return timestamp;
+}
