@@ -19,8 +19,8 @@ app.get('/:anything', function (req, res) {
   var ninety_days_ago = moment().subtract(90, 'days').format('YYYY-MM-DD')
 
   //SODA API Template
-  var sourceTemplate = 'https://data.cityofnewyork.us/resource/fhrw-4uyv.csv?$LIMIT={{sourceLimit}}&$ORDER=created_date%20DESC&$WHERE=created_date>=%27{{ninety_days_ago}}%27';
-
+  //  var sourceTemplate = 'https://data.cityofnewyork.us/resource/fhrw-4uyv.csv?$LIMIT={{sourceLimit}}&$ORDER=created_date%20DESC&$WHERE=created_date>=%27{{ninety_days_ago}}%27';
+  var sourceTemplate = 'https://data.sfgov.org/resource/p8zf-gnjt.csv?$LIMIT={{sourceLimit}}&$ORDER=created_date%20DESC&$WHERE=created_date>=%27{{ninety_days_ago}}%27';
   //build a SODA API call
   var sourceURL = Mustache.render( sourceTemplate, { 
     sourceLimit: sourceLimit,
